@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Open Canvas Assignment</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #f6f7f9;
+      color: #202124;
+    }
+    main {
+      max-width: 520px;
+      padding: 28px;
+      text-align: center;
+    }
+    a {
+      display: inline-block;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <p id="status">Opening Canvas…</p>
+    <a id="fallback" href="#">Open Canvas in browser</a>
+  </main>
+
+<script>
+(() => {
+  const params = new URLSearchParams(window.location.search);
+  const domain = params.get('domain') || 'peddie.instructure.com';
+  const course = params.get('course');
+  const assignment = params.get('assignment');
+
+  if (!/^\d+$/.test(course || '') || !/^\d+$/.test(assignment || '')) {
+    document.getElementById('status').textContent = 'Invalid Canvas assignment link.';
+    document.getElementById('fallback').style.display = 'none';
+    return;
+  }
+
+  const webUrl = `https://${domain}/courses/${course}/assignments/${assignment}`;
+  const appUrl = `canvas-courses://${domain}/courses/${course}/assignments/${assignment}`;
+  const fallback = document.getElementById('fallback');
+  const status = document.getElementById('status');
+  fallback.href = webUrl;
+
+  // Detect iPhone/iPad, including iPads that identify as "Macintosh" in Safari.
+  const ua = navigator.userAgent || '';
+  const isIOS = /iPhone|iPad|iPod/i.test(ua) ||
+                (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
+
+  if (!isIOS) {
+    // Mac/desktop: use the normal Canvas web page.
+    window.location.replace(webUrl);
+    return;
+  }
+
+  // iPhone/iPad: open Canvas Student.
+  // IMPORTANT: There is intentionally NO automatic browser fallback timer.
+  // The old timer could fire after Canvas had already opened, leaving a
+  // Canvas login page behind in the browser. If the app does not open,
+  // the user can use the manual fallback link instead.
+  status.textContent = 'Opening Canvas…';
+  window.location.href = appUrl;
+
+  // If this page remains visible, keep it harmless instead of redirecting.
+  setTimeout(() => {
+    if (!document.hidden) {
+      status.textContent = 'Canvas did not open?';
+    }
+  }, 1800);
+})();
+</script>
+</body>
+</html>
