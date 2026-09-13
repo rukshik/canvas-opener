@@ -3,6 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>Open Canvas Assignment</title>
   <style>
     body {
@@ -34,47 +37,72 @@
 <script>
 (() => {
   const params = new URLSearchParams(window.location.search);
-  const domain = params.get('domain') || 'peddie.instructure.com';
-  const course = params.get('course');
-  const assignment = params.get('assignment');
+  const domain = params.get("domain") || "peddie.instructure.com";
+  const course = params.get("course");
+  const assignment = params.get("assignment");
 
-  if (!/^\d+$/.test(course || '') || !/^\d+$/.test(assignment || '')) {
-    document.getElementById('status').textContent = 'Invalid Canvas assignment link.';
-    document.getElementById('fallback').style.display = 'none';
+  const status = document.getElementById("status");
+  const fallback = document.getElementById("fallback");
+
+  if (!/^\d+$/.test(course || "") || !/^\d+$/.test(assignment || "")) {
+    status.textContent = "Invalid Canvas assignment link.";
+    fallback.style.display = "none";
     return;
   }
 
-  const webUrl = `https://${domain}/courses/${course}/assignments/${assignment}`;
-  const appUrl = `canvas-courses://${domain}/courses/${course}/assignments/${assignment}`;
-  const fallback = document.getElementById('fallback');
-  const status = document.getElementById('status');
+  const webUrl =
+    `https://${domain}/courses/${course}/assignments/${assignment}`;
+
+  const iosUrl =
+    `canvas-courses://${domain}/courses/${course}/assignments/${assignment}`;
+
+  const macUrl =
+    `peddiecanvas://open?course=${encodeURIComponent(course)}` +
+    `&assignment=${encodeURIComponent(assignment)}`;
+
   fallback.href = webUrl;
 
-  // Detect iPhone/iPad, including iPads that identify as "Macintosh" in Safari.
-  const ua = navigator.userAgent || '';
-  const isIOS = /iPhone|iPad|iPod/i.test(ua) ||
-                (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
+  const ua = navigator.userAgent || "";
 
-  if (!isIOS) {
-    // Mac/desktop: use the normal Canvas web page.
-    window.location.replace(webUrl);
+  // iPads can identify themselves as Macintosh, so touch support matters here.
+  const isIOS =
+    /iPhone|iPad|iPod/i.test(ua) ||
+    (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
+
+  const isMac =
+    /Macintosh|Mac OS X/i.test(ua) &&
+    !isIOS;
+
+  if (isIOS) {
+    // Open Canvas Student. Intentionally no automatic web fallback:
+    // the old timer could leave a Canvas login page behind after the app opened.
+    window.location.href = iosUrl;
+
+    setTimeout(() => {
+      if (!document.hidden) {
+        status.textContent = "Canvas did not open?";
+      }
+    }, 1800);
+
     return;
   }
 
-  // iPhone/iPad: open Canvas Student.
-  // IMPORTANT: There is intentionally NO automatic browser fallback timer.
-  // The old timer could fire after Canvas had already opened, leaving a
-  // Canvas login page behind in the browser. If the app does not open,
-  // the user can use the manual fallback link instead.
-  status.textContent = 'Opening Canvas…';
-  window.location.href = appUrl;
+  if (isMac) {
+    // Hand off to the locally installed Peddie Canvas Helper (v8).
+    // Leave this page harmlessly in place rather than automatically redirecting.
+    window.location.href = macUrl;
 
-  // If this page remains visible, keep it harmless instead of redirecting.
-  setTimeout(() => {
-    if (!document.hidden) {
-      status.textContent = 'Canvas did not open?';
-    }
-  }, 1800);
+    setTimeout(() => {
+      if (!document.hidden) {
+        status.textContent = "Canvas did not open?";
+      }
+    }, 1800);
+
+    return;
+  }
+
+  // Windows/Linux/other desktops: normal Canvas website.
+  window.location.replace(webUrl);
 })();
 </script>
 </body>
